@@ -17,8 +17,21 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final _toDoController = TextEditingController();
-
   List _toDoList = [];
+  Map<String, dynamic> _lastRemoved;
+  int _lastRemovedPos;
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    _readData().then((data) => {
+          setState(() {
+            _toDoList = json.decode(data);
+          })
+        });
+  }
 
 //adicionando toDo
   void _addToDo() {
@@ -28,6 +41,7 @@ class _HomeState extends State<Home> {
       _toDoController.text = "";
       newToDo["ok"] = false;
       _toDoList.add(newToDo);
+      _saveData();
     });
   }
 
@@ -78,8 +92,8 @@ class _HomeState extends State<Home> {
                       onChanged: (c) {
                         setState(() {
                           _toDoList[index]["ok"] = c;
+                          _saveData();
                         });
-                        ;
                       },
                     );
                   })),
@@ -88,13 +102,14 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Future<File> getFile() async {
+  Future<File> _getFile() async {
     final directory = await getApplicationDocumentsDirectory();
     return File("${directory.path}/data.json");
   }
 
   Future<File> _saveData() async {
     String data = json.encode(_toDoList);
+
     final file = await _getFile();
     return file.writeAsString(data);
   }
@@ -109,5 +124,58 @@ class _HomeState extends State<Home> {
     }
   }
 
-  _getFile() {}
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Lista de tarefas"),
+        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+      ),
+      body: Column(
+        children: <Widget>[
+          Container(
+            padding: EdgeInsets.fromLTRB(17.0, 1.0, 7.0, 1.0),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: _toDoController,
+                    decoration: InputDecoration(
+                        labelText: "Nova tarefa",
+                        labelStyle: TextStyle(color: Colors.blueAccent)),
+                  ),
+                ),
+                RaisedButton(
+                    color: Colors.blueAccent,
+                    child: Text("ADD"),
+                    textColor: Colors.white,
+                    onPressed: _addToDo)
+              ],
+            ),
+          ),
+          Expanded(
+              child: ListView.builder(
+                  padding: EdgeInsets.only(top: 10.0),
+                  itemCount: _toDoList.length,
+                  itemBuilder: (context, index) {
+                    return CheckboxListTile(
+                      title: Text(_toDoList[index]["title"]),
+                      value: _toDoList[index]["ok"],
+                      secondary: CircleAvatar(
+                        child: Icon(
+                            _toDoList[index]["ok"] ? Icons.check : Icons.error),
+                      ),
+                      onChanged: (c) {
+                        setState(() {
+                          _toDoList[index]["ok"] = c;
+                          _saveData();
+                        });
+                      },
+                    );
+                  })),
+        ],
+      ),
+    );
+  }
 }
